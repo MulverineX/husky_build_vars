@@ -1,4 +1,4 @@
-name: Daily Build
+name: Daily Check
 
 on:
     schedule:
@@ -6,12 +6,15 @@ on:
     workflow_dispatch:
 
 jobs:
-    build:
+    check:
         runs-on: ubuntu-latest
+
+        permissions:
+            contents: write
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v2
+              uses: actions/checkout@v4
 
             - name: Set up 7zip
               run: |
@@ -30,10 +33,4 @@ jobs:
                 DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
               run: bun run index.ts
 
-            - name: Commit changes
-              run: |
-                git config --local user.email "action@github.com"
-                git config --local user.name "GitHub Action"
-                git add .
-                git commit -m "Auto-commit changes"
-                git push
+            - uses: stefanzweifel/git-auto-commit-action@v5

@@ -46,8 +46,6 @@ const stupid_iterator = beta_page.find('#gc-wrapper > main > devsite-content > a
 
 let beta_images_link: string | undefined
 
-console.log(stupid_iterator.length)
-
 for (let i = 0; i < stupid_iterator.length; i++) {
     const element = stupid_iterator[i]! as any
 
@@ -198,7 +196,7 @@ if (await current_image.text() === device_image) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                content: '<@178551656714076161> Play Integrity Memes\n\n```' + string_build_vars + '```'
+                content: process.env.UPDATE_MESSAGE! + '\n\n```' + string_build_vars + '```'
             })
         }
     )
