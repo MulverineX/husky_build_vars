@@ -26,6 +26,8 @@ jobs:
               run: bun i
 
             - name: Run index.ts
+              env:
+                DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
               run: bun run index.ts
 
             - name: Commit changes
