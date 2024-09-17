@@ -16,11 +16,6 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
-            - name: Set up 7zip
-              run: |
-                sudo apt-get update
-                sudo apt-get install p7zip-full -y
-
             - uses: oven-sh/setup-bun@v2
               with:
                 bun-version: latest
