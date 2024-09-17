@@ -138,13 +138,13 @@ if (await current_image.text() === device_image) {
 
     console.log(internal_image)
 
-    //await zip.extract(internal_image, 'image')
+    await zip.extract(internal_image, 'image')
 
     await zip.close()
 
     const internal_zip = new StreamZip.async({ file: `image/${internal_image.split('/')[1]}` }) as StreamZipAsync
 
-    //await internal_zip.extract('system.img', 'image')
+    await internal_zip.extract('system.img', 'image')
 
     await internal_zip.close()
 
@@ -180,10 +180,30 @@ if (await current_image.text() === device_image) {
 
     const spoof_build_vars = Bun.file('spoof_build_vars').writer()
 
-    spoof_build_vars.write(Object.entries(build_vars).map(([key, value]) => `${key}=${value}`).join('\n'))
+    const string_build_vars = Object.entries(build_vars).map(([key, value]) => `${key}=${value}`).join('\n')
+
+    spoof_build_vars.write(string_build_vars)
 
     await spoof_build_vars.end()
 
-    console.log('Done!')
+    console.log('Build vars written')
+
+    console.log('Notifying...')
+
+    await fetch(
+        process.env.DISCORD_WEBHOOK!,
+        {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                content: '<@178551656714076161> Play Integrity Memes\n\n```' + string_build_vars + '```'
+            })
+        }
+    )
+
+    console.log('Notified. Done!')
 }
 
