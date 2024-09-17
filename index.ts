@@ -1,5 +1,4 @@
-const DEVICE = 'husky'
-
+/** These are what you need to modify for your pixel */
 const build_vars = {
     MANUFACTURER: 'Google',
     MODEL: 'Pixel 8 Pro',
@@ -66,7 +65,7 @@ const beta_images_page = cheerio(await (await fetch(`https://developer.android.c
 
 
 
-const device_image = (beta_images_page.find(`#${DEVICE} > td:nth-child(2) > button`)! as any)[0].children[0].data
+const device_image = (beta_images_page.find(`#${build_vars.DEVICE} > td:nth-child(2) > button`)! as any)[0].children[0].data
 
 const current_image = Bun.file('current_image')
 
