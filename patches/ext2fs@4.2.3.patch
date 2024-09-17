@@ -1,0 +1,22 @@
+diff --git a/lib/fs.js b/lib/fs.js
+index baaebb4c6f226e709949b783f69a0bee29c33331..843dda28f1602da99709ca7adddb101f9ce87f11 100644
+--- a/lib/fs.js
++++ b/lib/fs.js
+@@ -6,7 +6,7 @@
+ const Buffer = require('buffer').Buffer;
+ const Stream = require('stream').Stream;
+ const EventEmitter = require('events');
+-const path = require('path');
++let path = require('path');
+ const { CODE_TO_ERRNO } = require('./wasi');
+ const {
+ 	ErrnoException,
+@@ -829,7 +829,7 @@ class ReadStream extends Readable {
+     // in the thread pool another read() finishes up the pool, and
+     // allocates a new one.
+     const thisPool = pool;
+-    const toRead = Math.min(pool.length - pool.used, n);
++    let toRead = Math.min(pool.length - pool.used, n);
+     const start = pool.used;
+ 
+     if (this.pos !== undefined)

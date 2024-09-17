@@ -1,0 +1,21 @@
+{
+  "name": "husky_build_vars",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "@types/cheerio": "^0.22.35",
+    "cheerio": "^1.0.0",
+    "ext2fs": "^4.2.3",
+    "file-disk": "^8.0.1",
+    "node-stream-zip": "^1.15.0"
+  },
+  "patchedDependencies": {
+    "ext2fs@4.2.3": "patches/ext2fs@4.2.3.patch"
+  }
+}
