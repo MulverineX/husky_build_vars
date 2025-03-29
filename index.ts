@@ -36,32 +36,11 @@ const version_link = versions_page.find('div.devsite-mobile-nav-bottom > ul > li
 
 build_vars.RELEASE = `${version_link.slice(-2)}`
 
-const release_page = cheerio(await (await fetch(`https://developer.android.com${version_link}`)).text())
+const beta_info_page = cheerio(await (await fetch(`https://developer.android.com${version_link}/get`)).text())
 
-const beta_link = release_page.find('div.devsite-mobile-nav-bottom > ul:nth-child(1) > li.devsite-nav-item.devsite-nav-expandable.devsite-nav-accordion.devsite-nav-preview > div > ul > li:nth-child(2) > a')!.attr('href')!
+const codename = /system image, called (\w+), and click/.exec(beta_info_page.find('div.devsite-article-body.clearfix > ol:nth-child(25) > li:nth-child(6) > p')!.text())![1].toLowerCase()
 
-const beta_page = cheerio(await (await fetch(`https://developer.android.com${beta_link}`)).text())
-
-const stupid_iterator = beta_page.find('#gc-wrapper > main > devsite-content > article > div.devsite-article-body.clearfix > p > a')
-
-let beta_images_link: string | undefined
-
-for (let i = 0; i < stupid_iterator.length; i++) {
-    const element = stupid_iterator[i]! as any
-
-    if (element.children && element.children[0] && element.children[0].data === 'Factory images for Google Pixel') {
-        beta_images_link = element.attribs.href
-        break
-    }
-}
-
-if (!beta_images_link) {
-    throw new Error('Could not find beta images link')
-}
-
-const beta_images_page = cheerio(await (await fetch(`https://developer.android.com${beta_images_link}`)).text())
-
-
+const beta_images_page = cheerio(await (await fetch(`https://developer.android.com${version_link}/download`)).text())
 
 const device_image = (beta_images_page.find(`#${build_vars.DEVICE} > td:nth-child(2) > button`)! as any)[0].children[0].data
 
@@ -84,8 +63,8 @@ ReadableStream.prototype[Symbol.asyncIterator] = async function* () {
 
 if (await current_image.text() === device_image) {
     console.log('No new image available')
-} else {
-    const device_image_link = `https://dl.google.com/developers/android/vic/images/factory/${device_image}`
+} else { // https://dl.google.com/developers/android/baklava/images/factory/husky_beta-bp22.250221.013-factory-9bf30a3a.zip
+    const device_image_link = `https://dl.google.com/developers/android/${codename}/images/factory/${device_image}`
 
     const save_image_id = current_image.writer()
 
@@ -98,10 +77,29 @@ if (await current_image.text() === device_image) {
     console.log('Downloading...')
 
     const downloader = async () => {
-        const image = (await fetch(device_image_link)).body!
+        const req = await fetch(device_image_link)
 
-        // @ts-ignore
-        return new Promise((res, rej) => stream.Readable.fromWeb(image).pipe(fs.createWriteStream('image.zip')).on('finish', () => { res() }).on('error', rej))
+        const size = Number(req.headers.get('content-length')!)
+
+        const image = stream.Readable.fromWeb(req.body! as unknown as import("stream/web").ReadableStream<any>)
+
+        let currentBytes = 0
+
+        let currentPercentage = 0
+
+        image.on('data', chunk => {
+            currentBytes += Buffer.byteLength(chunk)
+
+            const percentage = Math.floor((currentBytes / size) * 100)
+
+            if (percentage % 5 === 0 && percentage !== currentPercentage) {
+                console.log(`Download ${percentage}% complete`)
+
+                currentPercentage = percentage
+            }
+        })
+
+        return new Promise<void>((res, rej) => image.pipe(fs.createWriteStream('image.zip')).on('finish', () => { res() }).on('error', rej))
     }
 
     const image_file = Bun.file('image.zip')
