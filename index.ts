@@ -14,14 +14,9 @@ const build_vars = {
     SECURITY_PATCH: '',
 }
 
-const { load } = require('cheerio')
-const StreamZip = require('node-stream-zip')
-const { withMountedDisk } = require('ext2fs')
-const { FileDisk, withOpenFile } = require('file-disk')
-
-import fs from 'node:fs'
+import { load } from 'cheerio'
+import StreamZip from 'node-stream-zip'
 import fsp from 'node:fs/promises'
-import path from 'node:path'
 import stream from 'node:stream'
 import type cheerioModule from 'cheerio'
 import type { StreamZipAsync } from 'node-stream-zip'
@@ -87,6 +82,8 @@ if (await current_image.text() === device_image) {
 
         let currentPercentage = 0
 
+        const writer = Bun.file('image.zip').writer()
+
         image.on('data', chunk => {
             currentBytes += Buffer.byteLength(chunk)
 
@@ -97,9 +94,21 @@ if (await current_image.text() === device_image) {
 
                 currentPercentage = percentage
             }
+
+            writer.write(chunk)
         })
 
-        return new Promise<void>((res, rej) => image.pipe(fs.createWriteStream('image.zip')).on('finish', () => { res() }).on('error', rej))
+        return new Promise<void>((res, rej) => {
+            image.on('error', (error) => rej(error))
+
+            image.on('end', async () => {
+                await new Promise<void>((_res, _rej) => image._destroy(null, (error) => error === null ? _res() : _rej(error))).catch(e => rej(e))
+
+                await writer.end()
+
+                res()
+            })
+        })
     }
 
     const image_file = Bun.file('image.zip')
@@ -173,15 +182,21 @@ if (await current_image.text() === device_image) {
 
     console.log('Writing...')
 
-    const spoof_build_vars = Bun.file('spoof_build_vars').writer()
+    const spoof_build_vars = Object.entries(build_vars).map(([key, value]) => `${key}=${value}`).join('\n')
 
-    const string_build_vars = Object.entries(build_vars).map(([key, value]) => `${key}=${value}`).join('\n')
+    await Bun.write(Bun.file('spoof_build_vars'), spoof_build_vars)
 
-    spoof_build_vars.write(string_build_vars)
+    const patch_number = build_vars.SECURITY_PATCH.replaceAll('-', '')
 
-    await spoof_build_vars.end()
+    const security_patch = Object.entries({
+        system: patch_number.substring(0, 6),
+        vendor: build_vars.SECURITY_PATCH,
+        all: patch_number
+    }).map(([key, value]) => `${key}=${value}`).join('\n')
 
-    console.log('Build vars written')
+    await Bun.write(Bun.file('security_patch.txt'), security_patch)
+
+    console.log('Build vars & security patch written')
 
     console.log('Notifying...')
 
@@ -194,7 +209,7 @@ if (await current_image.text() === device_image) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                content: process.env.UPDATE_MESSAGE! + '\n\n```' + string_build_vars + '```'
+                content: process.env.UPDATE_MESSAGE! + '\n\n```' + spoof_build_vars + '```\n```' + security_patch + '```'
             })
         }
     )
