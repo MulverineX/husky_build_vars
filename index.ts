@@ -102,7 +102,7 @@ if (await current_image.text() === device_image) {
             image.on('error', (error) => rej(error))
 
             image.on('end', async () => {
-                await new Promise<void>((_res, _rej) => image._destroy(null, (error) => error === null ? _res() : _rej(error))).catch(e => rej(e))
+                await new Promise<void>((_res, _rej) => image._destroy(null, (error) => !error ? _res() : _rej(error))).catch(e => rej(e))
 
                 await writer.end()
 
